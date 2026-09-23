@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping &mdash; buy well, everywhere</title>
+    <meta name="description" content="A shopping platform with verified accounts, a persistent cart and order tracking, backed by a token-authenticated API.">
+    <link rel="stylesheet" href="{% static 'landing/css/landing.css' %}">
+</head>
+<body>
+    <header class="nav-wrap">
+        <nav class="nav container">
+            <a class="brand" href="{% url 'landing:home' %}">
+                <span class="brand-mark">S</span>
+                <span class="brand-name">Shopping</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#products">Products</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="/api/core/product-list/">API</a></li>
+                <li><a class="nav-cta" href="/admin/">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-inner">
+                <p class="eyebrow">Now serving the storefront and the app</p>
+                <h1>Everything you need to sell,<br>in one small backend.</h1>
+                <p class="lede">
+                    Verified accounts, a cart that remembers you, and orders you can track from
+                    pending to delivered &mdash; available on the web and through a clean, token
+                    authenticated API for the mobile app.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#products">Browse products</a>
+                    <a class="btn btn-ghost" href="/api/core/product-list/">Explore the API</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="products">
+            <div class="container">
+                <div class="section-head">
+                    <h2>Featured products</h2>
+                    <p>The latest items currently in the catalogue.</p>
+                </div>
+
+                <div class="product-grid">
+                    {% for product in products %}
+                    <article class="card">
+                        {% if product.image %}
+                        <img class="card-img" src="{{ product.image }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                        <div class="card-img card-img--placeholder" aria-hidden="true">{{ product.name|first|upper }}</div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h3 class="card-title">{{ product.name }}</h3>
+                            <p class="card-text">{{ product.description|truncatewords:15 }}</p>
+                            <div class="card-foot">
+                                <span class="price">&#8358;{{ product.price|floatformat:2 }}</span>
+                                {% if product.stock %}
+                                <span class="badge badge-in">{{ product.stock }} in stock</span>
+                                {% else %}
+                                <span class="badge badge-out">Out of stock</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                    {% empty %}
+                    <div class="empty">
+                        <h3>No products yet</h3>
+                        <p>
+                            The catalogue is empty. Add your first product from the
+                            <a href="/admin/">admin</a>, or run <code>manage.py seed</code> to
+                            populate some sample data.
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-alt" id="features">
+            <div class="container">
+                <div class="section-head">
+                    <h2>What's inside</h2>
+                    <p>The pieces already wired up and running.</p>
+                </div>
+
+                <div class="feature-grid">
+                    <article class="feature">
+                        <div class="feature-icon">&#9993;</div>
+                        <h3>Verified accounts</h3>
+                        <p>
+                            Registration sends a verification email before an account goes live,
+                            with password reset and change flows built alongside it.
+                        </p>
+                    </article>
+                    <article class="feature">
+                        <div class="feature-icon">&#128722;</div>
+                        <h3>Cart that persists</h3>
+                        <p>
+                            Every shopper gets one cart tied to their account. Add, update and
+                            remove items &mdash; subtotals and totals are computed server side.
+                        </p>
+                    </article>
+                    <article class="feature">
+                        <div class="feature-icon">&#128230;</div>
+                        <h3>Orders end to end</h3>
+                        <p>
+                            Check out into a real order and follow it through pending, paid,
+                            processing, shipped and delivered.
+                        </p>
+                    </article>
+                    <article class="feature">
+                        <div class="feature-icon">&#128241;</div>
+                        <h3>Built for the app</h3>
+                        <p>
+                            A token authenticated REST API backs the Flutter client, so the web
+                            storefront and mobile app read from exactly the same catalogue.
+                        </p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <span class="brand">
+                <span class="brand-mark">S</span>
+                <span class="brand-name">Shopping</span>
+            </span>
+            <p>&copy; {% now "Y" %} Shopping. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
