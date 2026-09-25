@@ -37,7 +37,7 @@ class RegisterSerializer(serializers.Serializer):
     )
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
-    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     
     def validate_email(self, value):
         """Validate email is unique."""
@@ -78,7 +78,7 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            phone=validated_data.get('phone', ''),
+            phone_number=validated_data.get('phone_number', ''),
         )
         return user
 

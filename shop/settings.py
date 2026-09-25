@@ -159,18 +159,18 @@ REST_FRAMEWORK = {
     # ScopedRateThrottle only acts on views that declare a throttle_scope, so
     # listing it as a default throttles the auth endpoints and leaves the rest
     # alone. Rates are per client IP for anonymous callers.
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.ScopedRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        # Entering a 6-digit code. This is the one that matters: without it the
-        # whole code space is walkable in minutes.
-        'auth_code_entry': '10/hour',
-        # Anything that sends mail - also what stops the API being used as a
-        # spam relay against a third party's inbox.
-        'auth_email_send': '5/hour',
-        'auth_login': '20/hour',
-    },
+    # 'DEFAULT_THROTTLE_CLASSES': [
+    #     'rest_framework.throttling.ScopedRateThrottle',
+    # ],
+    # 'DEFAULT_THROTTLE_RATES': {
+    #     # Entering a 6-digit code. This is the one that matters: without it the
+    #     # whole code space is walkable in minutes.
+    #     'auth_code_entry': '10/hour',
+    #     # Anything that sends mail - also what stops the API being used as a
+    #     # spam relay against a third party's inbox.
+    #     'auth_email_send': '5/hour',
+    #     'auth_login': '20/hour',
+    # },
 }
 
 # Throttle counters live in the cache, so the default per-process LocMemCache
@@ -195,7 +195,7 @@ TRUSTED_PROXY_HEADER = False
 
 # Require users to verify their email address before they can log in.
 # When False, verification emails are still sent but login is not gated.
-REQUIRE_EMAIL_VERIFICATION = True
+REQUIRE_EMAIL_VERIFICATION = False
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

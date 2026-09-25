@@ -66,7 +66,7 @@ class AuthService:
         }
 
     @staticmethod
-    def create_user(email, username, password, first_name='', last_name='', phone=''):
+    def create_user(email, username, password, first_name='', last_name='', phone_number=''):
         # The account and its verification email are one unit: if the mail can't
         # go out, the user (plus the rows the post_save signals add) is rolled
         # back so the address stays free to register again.
@@ -77,7 +77,7 @@ class AuthService:
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                phone=phone,
+                phone_number=phone_number,
             )
             AuthService.send_verification_email(user)
         return user
