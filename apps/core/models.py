@@ -13,6 +13,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     image = models.URLField(blank=True, null=True)
+    is_favorite = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
