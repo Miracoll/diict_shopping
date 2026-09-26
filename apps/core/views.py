@@ -10,15 +10,30 @@ from .models import Product, Cart, CartItem, Order, OrderItem
 from .serializers import ProductSerializer, CartSerializer, OrderSerializer
 # Create your views here.
 
-@api_view(["GET"])
-@permission_classes([AllowAny])
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def product_list(request):
-    products = Product.objects.filter(is_active=True)
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
+    if request.method == "GET":
+        products = Product.objects.filter(is_active=True)
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
+    elif request.method == "POST":
+        data = request.data
+        user = request.user
+
+        product =Product.objects.create(
+            name=data["name"],
+            description=data["description"],
+            price=data["price"],
+            stock=data["stock"],
+            user=user,
+            image=data.get("image", None),
+        )
+        serializer = ProductSerializer(product)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def product_detail(request, product_id):
     try:
         product = Product.objects.get(id=product_id)
