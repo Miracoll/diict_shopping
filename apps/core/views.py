@@ -1,5 +1,11 @@
+import json
+import logging
+import uuid
+
+from django.conf import settings
 from django.shortcuts import render
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +14,9 @@ from rest_framework.authentication import TokenAuthentication
 
 from .models import Product, Cart, CartItem, Order, OrderItem
 from .serializers import ProductSerializer, CartSerializer, OrderSerializer
+from .services import PaystackError, PaystackService
+
+logger = logging.getLogger(__name__)
 # Create your views here.
 
 @api_view(["GET", "POST"])
@@ -229,3 +238,112 @@ def order_detail(request, order_id):
     serializer = OrderSerializer(order)
     return Response(serializer.data)
 
+
+def _mark_order_paid(order_id, paystack_data):
+    """Mark an order paid if Paystack's transaction data really covers it.
+
+    Shared by the verify endpoint and the webhook, which can race each other
+    for the same payment - the row lock makes the second one a no-op.
+    Returns (order, paid).
+    """
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(id=order_id)
+        if order.status == "paid":
+            return order, True
+
+        if (
+            paystack_data.get("status") != "success"
+            or paystack_data.get("currency") != "NGN"
+            or int(paystack_data.get("amount") or 0) != PaystackService.to_kobo(order.total_amount)
+        ):
+            return order, False
+
+        order.status = "paid"
+        order.paid_at = timezone.now()
+        order.save(update_fields=["status", "paid_at", "updated_at"])
+        return order, True
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def initialize_payment(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+    except Order.DoesNotExist:
+        return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if order.status != "pending":
+        return Response({"error":f"Order is already {order.status}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Paystack refuses a reference it has seen before, so every attempt gets a
+    # fresh one; only the latest is kept on the order.
+    reference = f"ORD-{order.id}-{uuid.uuid4().hex[:10]}"
+
+    try:
+        data = PaystackService.initialize_transaction(
+            email=request.user.email,
+            amount=order.total_amount,
+            reference=reference,
+            callback_url=settings.PAYSTACK_CALLBACK_URL,
+            metadata={"order_id": order.id},
+        )
+    except PaystackError as exc:
+        return Response({"error":str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    order.payment_reference = reference
+    order.save(update_fields=["payment_reference", "updated_at"])
+
+    return Response({
+        "authorization_url": data.get("authorization_url"),
+        "access_code": data.get("access_code"),
+        "reference": reference,
+    })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def verify_payment(request, reference):
+    try:
+        order = Order.objects.get(payment_reference=reference, user=request.user)
+    except Order.DoesNotExist:
+        return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if order.status != "paid":
+        try:
+            data = PaystackService.verify_transaction(reference)
+        except PaystackError as exc:
+            return Response({"error":str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        order, paid = _mark_order_paid(order.id, data)
+        if not paid:
+            return Response({"error":"Payment not successful"}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = OrderSerializer(order)
+    return Response(serializer.data)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def paystack_webhook(request):
+    # The signature is over the exact bytes Paystack sent, so read the raw body
+    # before DRF parses it.
+    raw_body = request.body
+    if not PaystackService.is_valid_signature(raw_body, request.headers.get("x-paystack-signature")):
+        return Response({"error":"Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        event = json.loads(raw_body)
+    except ValueError:
+        return Response({"error":"Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if event.get("event") == "charge.success":
+        data = event.get("data") or {}
+        order = Order.objects.filter(payment_reference=data.get("reference")).first()
+        if order is not None:
+            _, paid = _mark_order_paid(order.id, data)
+            if not paid:
+                logger.warning("Webhook charge.success for %s did not match order %s", data.get("reference"), order.id)
+
+    # Anything other than 200 makes Paystack retry, which only helps for
+    # transient failures - not for events we've chosen to ignore.
+    return Response(status=status.HTTP_200_OK)

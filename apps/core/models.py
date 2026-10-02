@@ -62,6 +62,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(blank=True, null=True)
+    payment_reference = models.CharField(max_length=100, unique=True, blank=True, null=True)
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"

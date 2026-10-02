@@ -13,4 +13,8 @@ urlpatterns = [
     path("create-order/", views.create_order),
     path("order-list/", views.order_list),
     path("order/<int:order_id>/", views.order_detail),
+    path("order/<int:order_id>/pay/", views.initialize_payment),
+
+    path("payment/verify/<str:reference>/", views.verify_payment),
+    path("payment/webhook/", views.paystack_webhook),
 ]

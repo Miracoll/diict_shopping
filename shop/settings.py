@@ -219,6 +219,16 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', f'Auth<{EMAIL_HOST_USER}>')
 # Brand name shown in the email templates (header, greeting, footer).
 APP_NAME = env('APP_NAME', 'Auth')
 
+# Paystack
+# https://paystack.com/docs/api/
+#
+# The secret key only ever lives here - the app gets a checkout URL from the
+# backend and never sees it. Paystack redirects to the callback URL once a
+# payment completes; the app's WebView watches for it to know checkout is over.
+PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_BASE_URL = env('PAYSTACK_BASE_URL', 'https://api.paystack.co')
+PAYSTACK_CALLBACK_URL = env('PAYSTACK_CALLBACK_URL', 'https://standard.paystack.co/close')
+
 # OpenAPI schema, served at /api/schema/ with Swagger UI and ReDoc over it.
 #
 # The views are plain APIViews over plain Serializers, so nothing here is
@@ -250,5 +260,6 @@ LOGGING = {
     },
     'loggers': {
         'apps.authentication': {'handlers': ['console'], 'level': 'INFO'},
+        'apps.core': {'handlers': ['console'], 'level': 'INFO'},
     },
 }
